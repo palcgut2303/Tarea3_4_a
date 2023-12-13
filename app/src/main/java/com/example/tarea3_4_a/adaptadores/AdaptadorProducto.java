@@ -27,6 +27,15 @@ public class AdaptadorProducto extends RecyclerView.Adapter {
         this.contexto = contexto;
     }
 
+    public List<Producto> getDatos() {
+        return datos;
+    }
+
+    public void setDatos(List<Producto> datos) {
+        this.datos = datos;
+        notifyDataSetChanged();
+    }
+
     public int getPosicion() {
         return posicion;
     }

@@ -17,12 +17,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tarea3_4_a.R;
 import com.example.tarea3_4_a.adaptadores.AdaptadorProducto;
+import com.example.tarea3_4_a.basedatos.BaseDatosApp;
 import com.example.tarea3_4_a.databinding.FragmentListaCompraBinding;
 import com.example.tarea3_4_a.entidades.Producto;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class ListaCompraFragment extends Fragment {
 
@@ -32,29 +35,18 @@ public class ListaCompraFragment extends Fragment {
     private AdaptadorProducto adaptador;
     private List<Producto> datos = new ArrayList<>();
     private Context contexto;
+    private BaseDatosApp baseDatosApp;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        ListaCompraViewModel listaCompraViewModel =
-                new ViewModelProvider(this).get(ListaCompraViewModel.class);
 
         //Obtenemos el contexto de ejecución de la actividad de la aplicación.
         contexto = this.getActivity();
-        //Por ahora añadimos algunos datos de prueba a la lista de la compra
-        datos.add(new Producto("Leche", 2));
-        datos.add(new Producto("Carne", 1));
-        datos.add(new Producto("Lechugas", 2));
-        datos.add(new Producto("Barra de pan", 2));
-        datos.add(new Producto("Rioja", 1));
 
         binding = FragmentListaCompraBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
         final TextView textView = binding.titulo;
-
-        listaCompraViewModel = new ListaCompraViewModel();
-        listaCompraViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
-
 
         //Vinculamos el RecyclerView del código al del Layout.
         rv = binding.recyclerView;
@@ -75,12 +67,16 @@ public class ListaCompraFragment extends Fragment {
         //Registramos al RecyclerView como destino del menú contextual.
         registerForContextMenu(rv);
 
+        listaCompraViewModel = new ViewModelProvider(this).get(ListaCompraViewModel.class);
+        //Creamos un observador para el objeto LiveData de ListaCompraViewModel y si se modifica
+        //se hace que la lista de productos del adaptador sea igual al contenido del LiveData.
+        listaCompraViewModel.getProductos().observe(getViewLifecycleOwner(), adaptador::setDatos);
+
         return root;
     }
 
     //Método en el que tratamos las acciones correspondientes a la opción de menú contextual seleccionada
     //por el usuario.
-    @SuppressLint("NotifyDataSetChanged")
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         int posicion = -1;
@@ -89,30 +85,37 @@ public class ListaCompraFragment extends Fragment {
         } catch (Exception e) {
             return super.onContextItemSelected(item);
         }
-        int itemId = item.getItemId();
-        if (itemId == R.id.mi1) {
-            Snackbar.make(this.rv, "Se ha elegido editar el elemento " + posicion, Snackbar.LENGTH_LONG)
+        if(item.getItemId() == R.id.mi1){
+            Snackbar.make(this.rv, "Se ha elegido borrar el elemento "+posicion, Snackbar.LENGTH_LONG)
                     .show();
-            //Se tendría que realizar la llamada al método que permitiera la edición del elemento actual.
-        } else if (itemId == R.id.mi2) {
-            Snackbar.make(this.rv, "Se ha elegido borrar el elemento " + posicion, Snackbar.LENGTH_LONG)
-                    .show();
-            datos.remove(posicion);
-            adaptador.notifyDataSetChanged();
-        } else if (itemId == R.id.mi3) {
-            Snackbar.make(this.rv, "Se ha elegido añadir un elemento.", Snackbar.LENGTH_LONG)
-                    .show();
-            datos.add(new Producto("Chocolate", 2));
-            adaptador.notifyDataSetChanged();
+            //Se recupera el objeto a borrar desde la lista del adaptador.
+            Producto producto = adaptador.getDatos().get(posicion);
+
+            baseDatosApp = BaseDatosApp.getInstance(contexto);
+            Executor executor = Executors.newSingleThreadExecutor();
+            //Creamos un objeto de la clase BorrarProducto que realiza el borrado en un hilo aparte
+            executor.execute(new BorrarProducto(producto));
         }
         return super.onContextItemSelected(item);
     }
-
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+
+    class BorrarProducto implements Runnable {
+
+        private Producto producto;
+
+        public BorrarProducto(Producto producto) {
+            this.producto = producto;
+        }
+
+        @Override
+        public void run() {
+            baseDatosApp.productoDAO().delete(producto);
+        }
     }
 
 }

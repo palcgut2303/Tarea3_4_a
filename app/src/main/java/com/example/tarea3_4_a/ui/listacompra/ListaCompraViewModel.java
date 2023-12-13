@@ -1,19 +1,30 @@
 package com.example.tarea3_4_a.ui.listacompra;
 
+import android.app.Application;
+
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.AndroidViewModel;
+
+import com.example.tarea3_4_a.basedatos.BaseDatosApp;
+import com.example.tarea3_4_a.entidades.Producto;
+
+import java.io.Closeable;
+import java.util.List;
 
 public class ListaCompraViewModel extends ViewModel {
 
-    private final MutableLiveData<String> mText;
-
-    public ListaCompraViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is home fragment");
+    private final LiveData<List<Producto>> productos;
+    public ListaCompraViewModel(@NonNull Application application) {
+        super((Closeable) application);
+        //Inicializamos el contenido de la lista, al de la tabla de la base de datos
+        productos = BaseDatosApp
+                .getInstance(application)
+                .productoDAO().getAll();
     }
 
-    public LiveData<String> getText() {
-        return mText;
+    public LiveData<List<Producto>> getProductos() {
+        return productos;
     }
 }

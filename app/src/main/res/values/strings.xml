@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Actividad3_4</string>
-    <string name="title_home">Lista de la compra</string>
     <string name="title_dashboard">Alta producto</string>
     <string name="hint_cantidad">Introduce la cantidad</string>
     <string name="hint_producto">Introduce el producto</string>
